@@ -1,13 +1,28 @@
+'''
+
+conta = {'tipo': int [1 (PF-P),2 (PF-C),3 (PJ)], 'nome': string, 'cpf': [string, string], 'saldo': float, 'lock': bool}
+
+formto de envio = {'cpf'= string, 'contas' = [dict, dict, ...]}
+'''
+
 class Banco:
-    # Através do IP do banco é que ele receberá e enviará trnasações
+    # Através do IP do banco é que ele receberá e enviará transações
     def __init__(self, nome, ip):
         self.nome = nome
         self.ip = ip
-        self.clientes = []
+        self.contas = []
     
+    def criar_conta(self, cpf, tipo, ):
+        pass
+
     def get_saldo(self, cpf, ip_origem):
         # Enviar para o ip_origem o saldo do cliente cpf
-        pass
+        envio = {'cpf': cpf, 'contas': []}
+        for conta in self.contas:
+            if cpf in conta['cpf']:
+                infos = {'tipo': conta['tipo'], 'saldo': conta['saldo']}
+                envio['contas'].append(infos)
+                print("Achei sua conta")
 
     def listar_saldos(self, cpf):
         # Enviar para todos os bancos uma solicitacao get_saldo()

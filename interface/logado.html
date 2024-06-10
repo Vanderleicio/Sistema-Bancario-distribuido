@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 700px; margin: auto; }
+        h1, .form-group.button { text-align: center; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 5px; }
+        .form-group input { width: 100%; padding: 8px; box-sizing: border-box; }
+        .form-group button { padding: 10px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        .form-group button:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dashboard</h1>
+        <div class="form-group">
+            <label>Saldo Atual:</label>
+            <input type="text" id="main_balance" readonly>
+        </div>
+        <div id="accounts">
+            <!-- As contas serão adicionadas aqui -->
+        </div>
+        <h3>Fazer Transferência:</h3>
+        <div class="form-group">
+            <label for="target_cpf">CPF da Conta Destino:</label>
+            <input type="text" id="target_cpf" placeholder="Digite o CPF da conta destino">
+        </div>
+        <div class="form-group">
+            <label for="amount">Valor:</label>
+            <input type="number" id="amount" placeholder="Digite o valor">
+        </div>
+        <div class="form-group button">
+            <button id="transferButton">Transferir</button>
+        </div>
+        <div id="transferResult" class="result"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('/api/contas/todas')
+                .then(response => response.json())
+                .then(data => {
+                    if (data[0]['contas'][0]['nome']) {
+                        document.getElementById('main_balance').value = `R$ ${data[0]['contas'][0]['saldo']}`;
+                        const accountsContainer = document.getElementById('accounts');
+                        data.forEach(bank => {
+                            const bankDiv = document.createElement('div');
+                            bankDiv.className = 'form-group';
+                            bankDiv.innerHTML = `<h3>${bank.banco}</h3>`;
+                            bank['contas'].forEach(account => {
+                                bankDiv.innerHTML += `
+                                    <div class="form-group">
+                                        <label>Conta ${account.nome}:</label>
+                                        <input type="text" value="R$ ${account.saldo}" readonly>
+                                    </div>
+                                `;
+                            });
+                            accountsContainer.appendChild(bankDiv);
+                        });
+                    } else {
+                        window.location.href = '/login';
+                    }
+                });
+
+            document.getElementById('transferButton').addEventListener('click', () => {
+                const target_cpf = document.getElementById('target_cpf').value;
+                const amount = parseFloat(document.getElementById('amount').value);
+
+                fetch('/api/transfer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ target_cpf, amount })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('transferResult').innerText = data.message;
+                        if (data.success) {
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 2000);  // Redireciona após 2 segundos
+                        }
+                    });
+            });
+        });
+    </script>
+</body>
+</html>
