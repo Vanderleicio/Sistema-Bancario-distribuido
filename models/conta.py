@@ -3,23 +3,18 @@ import threading
 # Tipos: PF - P (1), PF - C (2), PJ (3)
 
 class Conta:
-    def __init__(self, nome, cpf, tipo, senha):
+    def __init__(self, id, nome, cpf, tipo, senha):
+        self.id = id
         self.nome = nome
         self.tipo = tipo
         self.senha = senha
         self.saldos = []
-
-        if (self.tipo == 2):
-            # Contas conjuntas têm 2 cpfs associados
-            self.cpf = cpf
-        else:
-            self.cpf = cpf
-        
+        self.cpf = cpf
         self.saldo = 0
         self.lock = threading.Lock()
     
     def to_dict(self):
-        return {"nome": self.nome, "tipo": self.tipo, "cpf": self.cpf, "saldo": self.saldo}
+        return {"id": self.id, "nome": self.nome, "tipo": self.tipo, "cpf": self.cpf, "saldo": self.saldo}
     
     def add_saldo(self, valor):
         adquirido = self.lock.acquire(blocking=False)

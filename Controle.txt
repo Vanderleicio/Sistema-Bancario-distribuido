@@ -1,0 +1,9 @@
+- Protocolo de Inicialização
+- Tratamento de erros de login
+- Tranferências entre bancos
+- Saque e Deposito
+- Testes no shell script
+V - N contas conjuntas por CPF
+- Responnsividades das interfaces ao saldo
+- Poder mexer em sua conta a partir de qualquer banco (Ex.: Fazer saque e depósito também)
+V - Cadastrar os 2 nomes envolvidos numa conta conjunta

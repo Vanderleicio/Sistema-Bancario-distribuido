@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login de Contas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        select, input[type="password"], button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="form-group">
+        <label for="contas">Escolha uma conta:</label>
+        <select id="contas">
+            <option value="">Selecione uma conta</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="senha">Digite sua senha:</label>
+        <input type="password" id="senha">
+    </div>
+    <button onclick="login()">Entrar</button>
+</div>
+
+<script>
+    // Função para obter as contas da API e preencher o dropdown
+    async function fetchContas() {
+        try {
+            const cpf = "{{ usercpf }}"
+            const url = `http://127.0.0.1:5000/api/contas/cpf?CPFs=${encodeURIComponent(cpf)}`
+
+            const response = await fetch(url);
+            const contas = await response.json();
+
+            console.log(contas)
+            const contasDropdown = document.getElementById('contas');
+
+            contas.forEach(conta => {
+                const option = document.createElement('option');
+                option.value = JSON.stringify(conta);
+                option.textContent = `${(conta.tipo == 1)?"PF - Particular": (conta.tipo == 2)? "PF - Conjunta": "PJ"} ${(conta.tipo == 2)? ("com " + (conta.cpf[0] == cpf? conta.nome[1]: conta.nome[0])): " "}`;
+                contasDropdown.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Erro ao buscar contas:', error);
+        }
+    }
+
+    // Função para manipular o login
+    function login() {
+        const contasDropdown = document.getElementById('contas');
+        const senhaInput = document.getElementById('senha');
+
+        const contaSelecionada = JSON.parse(contasDropdown.value);
+        const senha = senhaInput.value;
+
+        const cpf = contaSelecionada['cpf']
+
+            fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({cpf, senha})
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        setTimeout(() => {
+                            window.location.href = '/inicio';
+                        }, 1000);
+                    }
+                });
+
+
+        if (!contaSelecionada || !senha) {
+            alert('Por favor, selecione uma conta e digite sua senha.');
+            return;
+        }
+
+        // Aqui você pode adicionar a lógica para verificar a senha e fazer o login
+        console.log('Conta selecionada:', contaSelecionada);
+        console.log('Senha digitada:', senha);
+
+        alert('Login realizado com sucesso!');
+    }
+
+    // Chamar a função para preencher o dropdown ao carregar a página
+    fetchContas();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interface de Contas Bancárias</title>
+    <style>
+        body {
+            display: flex;
+            font-family: Arial, sans-serif;
+        }
+        .column {
+            width: 33%;
+            padding: 10px;
+            border-right: 1px solid #ccc;
+        }
+        .column:last-child {
+            border-right: none;
+        }
+        .title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .account-list, .operation-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .operation-options {
+            margin-top: 10px;
+        }
+        .operation-options select, .operation-options input {
+            margin: 5px 0;
+            width: 100%;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="column">
+        <div class="title">Saldos em Diversos Bancos</div>
+        <ul id="account-list" class="account-list"></ul>
+    </div>
+    <div class="column">
+        <div class="title">Conta Logada</div>
+        <div id="logged-account"></div>
+    </div>
+    <div class="column">
+        <div class="title">Operações</div>
+        <div class="operation-options">
+            <label for="operation">Escolha uma operação:</label>
+            <select id="operation" onchange="showOperationFields()">
+                <option value="">Selecione</option>
+                <option value="deposit">Deposito</option>
+                <option value="withdraw">Saque</option>
+                <option value="transfer">Transferência</option>
+            </select>
+            <div id="operation-fields"></div>
+            <button id="confirm-button" class="hidden" onclick="confirmOperation()">Confirmar</button>
+        </div>
+    </div>
+
+    <script>
+        let data = [];
+
+        // Function to fetch account data from API
+        async function fetchAccountData() {
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/contas/todas');
+                data = await response.json();
+                renderAccounts();
+            } catch (error) {
+                console.error('Erro ao buscar dados das contas:', error);
+            }
+        }
+
+        // Function to render accounts list
+        function renderAccounts() {
+            const accountList = document.getElementById('account-list');
+            const loggedAccountDiv = document.getElementById('logged-account');
+            accountList.innerHTML = '';
+
+            data.forEach(bank => {
+                const bankItem = document.createElement('li');
+                bankItem.textContent = bank.banco;
+                const accountSubList = document.createElement('ul');
+                bank.contas.forEach((account, index) => {
+                    if (index === 0 && bank === data[0]) {
+                        loggedAccountDiv.innerHTML = `
+                            <p><strong>Banco:</strong> ${bank.banco}</p>
+                            <p><strong>Nome:</strong> ${account.nome}</p>
+                            <p><strong>Tipo:</strong> ${account.tipo}</p>
+                            <p><strong>CPF:</strong> ${account.cpf}</p>
+                            <p><strong>Saldo:</strong> R$ ${account.saldo.toFixed(2)}</p>
+                        `;
+                    } else {
+                        const accountItem = document.createElement('li');
+                        accountItem.textContent = `${account.nome} (${account.tipo}) - R$ ${account.saldo.toFixed(2)}`;
+                        accountSubList.appendChild(accountItem);
+                    }
+                });
+                bankItem.appendChild(accountSubList);
+                accountList.appendChild(bankItem);
+            });
+        }
+
+        // Function to show operation fields based on selected operation
+        function showOperationFields() {
+            const operation = document.getElementById('operation').value;
+            const operationFields = document.getElementById('operation-fields');
+            const confirmButton = document.getElementById('confirm-button');
+            operationFields.innerHTML = '';
+            confirmButton.classList.add('hidden');
+
+            if (operation === 'deposit' || operation === 'withdraw') {
+                const accountSelect = createAccountSelect();
+                const amountInput = document.createElement('input');
+                amountInput.type = 'number';
+                amountInput.placeholder = 'Valor';
+                amountInput.id = 'amount-input';
+                operationFields.appendChild(accountSelect);
+                operationFields.appendChild(amountInput);
+                confirmButton.classList.remove('hidden');
+            } else if (operation === 'transfer') {
+                const originAccountSelect = createAccountSelect(true);
+                originAccountSelect.id = 'origin-account-select';
+                const cpfInput = document.createElement('input');
+                cpfInput.type = 'text';
+                cpfInput.placeholder = 'CPF da conta de destino';
+                cpfInput.id = 'cpf-input';
+                operationFields.appendChild(originAccountSelect);
+                operationFields.appendChild(cpfInput);
+                confirmButton.classList.remove('hidden');
+
+                originAccountSelect.addEventListener('change', function () {
+                    const selectedOptions = Array.from(originAccountSelect.selectedOptions);
+                    const existingAmountInputs = document.querySelectorAll(`input[data-cpf]`);
+                    existingAmountInputs.forEach(input => input.remove()); // Remove existing amount inputs
+
+                    selectedOptions.forEach(option => {
+                        const amountInput = document.createElement('input');
+                        amountInput.type = 'number';
+                        amountInput.placeholder = `Valor de ${option.textContent}`;
+                        amountInput.dataset.cpf = option.value;
+                        operationFields.appendChild(amountInput);
+                    });
+                });
+            }
+        }
+
+        // Function to create account select dropdown
+        function createAccountSelect(multiple = false) {
+            const accountSelect = document.createElement('select');
+            accountSelect.multiple = multiple;
+            data.forEach(bank => {
+                bank.contas.forEach(account => {
+                    const option = document.createElement('option');
+                    option.value = account.cpf;
+                    option.textContent = `${account.nome} (${account.tipo}) - R$ ${account.saldo.toFixed(2)}`;
+                    accountSelect.appendChild(option);
+                });
+            });
+            return accountSelect;
+        }
+
+        // Function to confirm operation
+        function confirmOperation() {
+            const operation = document.getElementById('operation').value;
+            const amountInput = document.getElementById('amount-input');
+            if (operation === 'deposit' || operation === 'withdraw') {
+                if (amountInput && amountInput.value) {
+                    alert(`Operação de ${operation} confirmada! Valor: R$ ${amountInput.value}`);
+                } else {
+                    alert('Por favor, insira um valor.');
+                }
+            } else if (operation === 'transfer') {
+                const originAccountSelect = document.getElementById('origin-account-select');
+                const selectedOptions = Array.from(originAccountSelect.selectedOptions);
+                const cpfInput = document.getElementById('cpf-input');
+                if (cpfInput.value) {
+                    let transferAmounts = [];
+                    selectedOptions.forEach(option => {
+                        const amountInput = document.querySelector(`input[data-cpf="${option.value}"]`);
+                        if (amountInput && amountInput.value) {
+                            transferAmounts.push({
+                                cpf: option.value,
+                                amount: amountInput.value
+                            });
+                        }
+                    });
+                    if (transferAmounts.length > 0) {
+                        alert(`Transferência confirmada! CPF de destino: ${cpfInput.value}, Valores: ${JSON.stringify(transferAmounts)}`);
+                    } else {
+                        alert('Por favor, insira os valores para cada conta de origem selecionada.');
+                    }
+                } else {
+                    alert('Por favor, insira o CPF da conta de destino.');
+                }
+            }
+        }
+
+        // Fetch account data on page load
+        fetchAccountData();
+    </script>
+</body>
+</html>
