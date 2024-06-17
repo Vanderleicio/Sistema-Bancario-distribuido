@@ -19,13 +19,19 @@ class Conta:
     def add_saldo(self, valor):
         adquirido = self.lock.acquire(blocking=False)
         if not adquirido:
+            print("TESTE 1")
             raise RuntimeError("Movimentação sendo feita. Aguarde...")
 
         try:
             # Seção crítica
+            print("TESTE 2")
             self.saldo += valor
+            print("TESTE 3")
             print(f"Somando {valor} no saldo")
+        except Exception as e:
+            print(str(e))
         finally:
+            print("TESTE 4")
             self.lock.release()
     
     def sub_saldo(self, valor):

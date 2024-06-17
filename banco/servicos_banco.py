@@ -24,10 +24,8 @@ class Banco:
         # Retorna todas as contas associadas ao CPF/CNPJ passado.
         contas = []
         for conta in self.contas:
-            print("N CPF")
-            print(n_cpf)
-            print("CPFS")
-            print(conta.cpf)
+            #print(n_cpf)
+            #print(conta.cpf)
             if n_cpf in conta.cpf:
                 contas.append(conta)
         
@@ -37,6 +35,7 @@ class Banco:
         # Retorna a conta associada ao(s) CPF(s)/CNPJ especificado(s).
         for conta in self.contas:
             if cpfs == conta.cpf:
+                print(conta)
                 return conta
     
     def get_conta_id(self, id_conta):
@@ -48,10 +47,20 @@ class Banco:
     def login(self, cpf, senha):
         return self.get_conta_cpf(cpf).senha == senha
     
-    def saida(self, id_conta):
+    def saida(self, id_conta, valor):
         # Protocolo para fazer a retirada de dinheiro de uma conta
-        return False
+        try:
+            contaAlvo = self.get_conta_id(id_conta)
+            contaAlvo.sub_saldo(valor)
+            return True
+        except:
+            return False
     
-    def entrada(self, id_conta):
+    def entrada(self, id_conta, valor):
         # Protocolo para fazer a entrada de dinheiro em uma conta
-        return False
+        try:
+            contaAlvo = self.get_conta_id(id_conta)
+            contaAlvo.add_saldo(valor)
+            return True
+        except:
+            return False

@@ -53,10 +53,12 @@ def auth_login():
     dados = request.get_json()
     cpf = dados['cpf']
     senha = dados['senha']
-    id_conta = banco.login(cpf, senha)
-    if id_conta:
-        global conta_atual
-        conta_atual = {"id": id_conta, "cpf": conta_atual}
+    print(cpf)
+    if banco.login(cpf, senha):
+        global conta_atual # Pode ser os dados da conta ou o cpf que está tentando logar.
+        id_conta = banco.get_conta_cpf(cpf).id
+        print(id_conta)
+        conta_atual = {"id": id_conta, "cpf": cpf, "cpf_logado": conta_atual}
         return jsonify({'success': True})
     
     return jsonify({'success': False})
@@ -76,8 +78,16 @@ def get_conta():
 
 @banco_blueprint.route('/api/contas/todas', methods=['GET'])
 def get_tdas_contas():
-    cpf = conta_atual["cpf"]
-    tdas_contas = [{'banco': banco.nome, 'contas': [conta.to_dict() for conta in banco.get_contas_do_cpf(cpf)]}]
+    cpf = conta_atual["cpf_logado"]
+
+    # Garantir que a primeira conta da lista é a conta que está logada no momento
+    tdas_contas = [{'banco': banco.nome, 'contas': [banco.get_conta_id(conta_atual['id']).to_dict()]}]
+
+    for conta in banco.get_contas_do_cpf(cpf):
+        if conta.cpf != tdas_contas[0]['contas'][0]['cpf']:
+            # Conta a ser adicionada não é a que já está
+            tdas_contas[0]['contas'].append(conta.to_dict())
+    
     #print("CPF DA CONTA " + cpf[0])
     parametros = {'CPFs': cpf[0]}
     for bancos in consorcio:
@@ -87,6 +97,65 @@ def get_tdas_contas():
             tdas_contas.append(banco_conta)
     print(tdas_contas)
     return jsonify(tdas_contas)
+
+@banco_blueprint.route('/api/contas/geral', methods=['GET'])
+def get_tdas_contas_geral():
+    cpf = request.args.getlist('cpf')
+
+    # Garantir que a primeira conta da lista é a conta que está logada no momento
+    tdas_contas = [{'banco': banco.nome, 'contas': [conta.to_dict() for conta in banco.get_contas_do_cpf(cpf[0])]}]
+
+    #print("CPF DA CONTA " + cpf[0])
+    parametros = {'CPFs': cpf[0]}
+    for bancos in consorcio:
+        contas = requests.get(bancos['rota'] + '/api/contas/cpf', params=parametros).json()
+        if len(contas) > 0:
+            banco_conta = {'banco': bancos['nome'], 'contas': contas}
+            tdas_contas.append(banco_conta)
+    print(tdas_contas)
+    return jsonify(tdas_contas)
+
+@banco_blueprint.route('/api/depositar', methods=['POST'])
+def deposito():
+    dados = request.get_json()
+    cpf = eval(dados['cpf'])
+    valor = float(dados['valor'])
+    conta = banco.get_conta_cpf(cpf)
+    funcionou = banco.entrada(conta.id, valor)
+    if (funcionou):
+        print("Operação foi um sucesso!")
+    else:
+        print("Operação falhou")
+    
+    return jsonify({'success': True})
+    
+
+@banco_blueprint.route('/api/sacar', methods=['POST'])
+def saque():
+    dados = request.get_json()
+    cpf = eval(dados['cpf'])
+    valor = float(dados['valor'])
+    conta = banco.get_conta_cpf(cpf)
+    if (banco.saida(conta.id, valor)):
+        print("Operação foi um sucesso!")
+        return jsonify({'success': True})
+    else:
+        print("Operação falhou")
+        return jsonify({'success': False})
+        
+
+@banco_blueprint.route('/api/transferencia', methods=['POST'])
+def transferencia():
+    contas_origem = request.args.getlist('origens')  # [{'banco': string, 'id': int, 'valor': float}]
+    contas_destino = request.args.getlist('destino') # {'banco': string, 'id': int} 
+    # IMPLEMENTAR A LÓGICA DE COORDENADOR
+
+
+
+@banco_blueprint.route()
+def participante():
+    # IMPLEMENTAR A LÓGICA DE PARTICIPANTE
+    pass
 
 '''
 [

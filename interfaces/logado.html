@@ -39,7 +39,7 @@
 </head>
 <body>
     <div class="column">
-        <div class="title">Saldos em Diversos Bancos</div>
+        <div class="title">Saldos em outros Bancos</div>
         <ul id="account-list" class="account-list"></ul>
     </div>
     <div class="column">
@@ -63,15 +63,29 @@
 
     <script>
         let data = [];
+        let destinationAccounts = [];
+
+        const cpf = "{{ user.cpf|safe }}"
 
         // Function to fetch account data from API
         async function fetchAccountData() {
             try {
                 const response = await fetch('http://127.0.0.1:5000/api/contas/todas');
                 data = await response.json();
+                console.log(data)
                 renderAccounts();
             } catch (error) {
                 console.error('Erro ao buscar dados das contas:', error);
+            }
+        }
+
+        async function fetchDestinationAccounts(cpf) {
+            try {
+                const response = await fetch(`http://127.0.0.1:5000/api/contas/geral?cpf=${cpf}`);
+                destinationAccounts = await response.json();
+                renderDestinationAccounts();
+            } catch (error) {
+                console.error('Erro ao buscar contas de destino:', error);
             }
         }
 
@@ -113,6 +127,7 @@
             operationFields.innerHTML = '';
             confirmButton.classList.add('hidden');
 
+
             if (operation === 'deposit' || operation === 'withdraw') {
                 const accountSelect = createAccountSelect();
                 const amountInput = document.createElement('input');
@@ -129,8 +144,19 @@
                 cpfInput.type = 'text';
                 cpfInput.placeholder = 'CPF da conta de destino';
                 cpfInput.id = 'cpf-input';
+                const searchButton = document.createElement('button'); // *** Adicionado botão de pesquisa ***
+                searchButton.textContent = 'Pesquisar Contas';
+                searchButton.onclick = () => {
+                    const cpf = cpfInput.value;
+                    if (cpf) {
+                        fetchDestinationAccounts(cpf);
+                    } else {
+                        alert('Por favor, insira um CPF.');
+                    }
+                };
                 operationFields.appendChild(originAccountSelect);
                 operationFields.appendChild(cpfInput);
+                operationFields.appendChild(searchButton);
                 confirmButton.classList.remove('hidden');
 
                 originAccountSelect.addEventListener('change', function () {
@@ -164,13 +190,70 @@
             return accountSelect;
         }
 
+        function renderDestinationAccounts() { 
+            const operationFields = document.getElementById('operation-fields');
+            const existingDestinationSelect = document.getElementById('destination-account-select');
+            if (existingDestinationSelect) existingDestinationSelect.remove();
+
+            const destinationSelect = document.createElement('select');
+            destinationSelect.id = 'destination-account-select';
+
+            destinationAccounts.forEach(bank => {
+                bank.contas.forEach(account => {
+                    const option = document.createElement('option');
+                    option.value = account.cpf;
+                    option.textContent = `${bank.banco} - ${account.nome}`;
+                    destinationSelect.appendChild(option);
+                });
+            });
+            operationFields.appendChild(destinationSelect);
+        }
+
         // Function to confirm operation
-        function confirmOperation() {
+        async function confirmOperation() {
             const operation = document.getElementById('operation').value;
             const amountInput = document.getElementById('amount-input');
-            if (operation === 'deposit' || operation === 'withdraw') {
+            if (operation === 'deposit') {
                 if (amountInput && amountInput.value) {
-                    alert(`Operação de ${operation} confirmada! Valor: R$ ${amountInput.value}`);
+                    const options = {
+                        method: 'POST',
+                        headers: {
+                        'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({'cpf': cpf, 'valor': amountInput.value}) // Converter objeto JavaScript para JSON string
+                    };
+                    console.log(123)
+                    console.log(options['body'])
+                    fetch('http://127.0.0.1:5000/api/depositar', options)
+                    .then(response => response.json())
+                    .then(data => console.log(data))
+                    .catch(error => console.error('Erro:', error));
+                    location.reload()
+                } else {
+                    alert('Por favor, insira um valor.');
+                }
+            } else if (operation === 'withdraw') {
+                if (amountInput && amountInput.value) {
+                    const options = {
+                        method: 'POST',
+                        headers: {
+                        'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({'cpf': cpf, 'valor': amountInput.value}) // Converter objeto JavaScript para JSON string
+                    };
+                    console.log(123)
+                    console.log(options['body'])
+                    fetch('http://127.0.0.1:5000/api/sacar', options)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success){
+                            console.log("Subtraido")
+                            location.reload()
+                        } else{
+                            alert(`A conta não tem saldo suficiente para o saque solicitado!`);
+                        }
+                    })
+                    .catch(error => console.error('Erro:', error));
                 } else {
                     alert('Por favor, insira um valor.');
                 }
@@ -196,6 +279,31 @@
                     }
                 } else {
                     alert('Por favor, insira o CPF da conta de destino.');
+                }
+            }
+        }
+
+        async function searchAccounts() {
+            const operation = document.getElementById('operation').value;
+            const amountInput = document.getElementById('amount-input');
+            if (operation === 'deposit') {
+                if (amountInput && amountInput.value) {
+                    const options = {
+                        method: 'POST',
+                        headers: {
+                        'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({'cpf': cpf, 'valor': amountInput.value}) // Converter objeto JavaScript para JSON string
+                    };
+                    console.log(123)
+                    console.log(options['body'])
+                    fetch('http://127.0.0.1:5000/api/depositar', options)
+                    .then(response => response.json())
+                    .then(data => console.log(data))
+                    .catch(error => console.error('Erro:', error));
+                    location.reload()
+                } else {
+                    alert('Por favor, insira um valor.');
                 }
             }
         }
