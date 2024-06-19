@@ -7,6 +7,7 @@ banco = Banco("Banco do LARSID")
 #consorcio = [{'nome': 'LARSIDesco', 'rota': 'http://127.0.0.1:5002'}] # Digitar aqui os outros bancos: {'nome': nome_do_banco, 'rota': rota_do_banco} Ex: {'nome': 'LARSIDesco', 'rota': 'http://127.0.0.2:5025'}
 consorcio = []
 conta_atual = None
+status_participantes = []
 
 @banco_blueprint.route('/')
 def home():
@@ -136,7 +137,10 @@ def saque():
     cpf = eval(dados['cpf'])
     valor = float(dados['valor'])
     conta = banco.get_conta_cpf(cpf)
-    if (banco.saida(conta.id, valor)):
+    conta_envolvida = [{'id': conta.id, 'valor': valor}]
+    sucesso_preparacao, id_transacao = banco.preparar_saida(conta_envolvida)
+    if (sucesso_preparacao):
+        banco.saida(id_transacao)
         print("Operação foi um sucesso!")
         return jsonify({'success': True})
     else:
@@ -146,16 +150,48 @@ def saque():
 
 @banco_blueprint.route('/api/transferencia', methods=['POST'])
 def transferencia():
-    contas_origem = request.args.getlist('origens')  # [{'banco': string, 'id': int, 'valor': float}]
-    contas_destino = request.args.getlist('destino') # {'banco': string, 'id': int} 
+    dados = request.get_json()
+    contas_origem = dados['contas_origem']  # [{'banco': string, 'id': int, 'valor': float}]
+    contas_destino = dados['conta_destino'] # {'banco': string, 'id': int}
+    print("TÁ VINDO TUDO CERTO?:")
+    print(contas_origem)
+    print(contas_destino)
+    return True
     # IMPLEMENTAR A LÓGICA DE COORDENADOR
 
 
 
-@banco_blueprint.route()
+@banco_blueprint.route('/api/participante', methods=['GET'])
 def participante():
-    # IMPLEMENTAR A LÓGICA DE PARTICIPANTE
-    pass
+    ordem = request.args.getlist('mensagem') # 'preparar' ou 'comitar'
+    contas_alvo = request.args.getlist('contas') # [{'id': int, 'retirar': bool, 'valor': float}]
+    
+    contas_p_retirar = []
+    contas_p_depositar = []
+
+    for conta in contas_alvo:
+        if conta['retirar']:
+            contas_p_retirar.append(conta)
+        else:
+            contas_p_depositar.append(conta)
+
+    if ordem == 'preparar':
+        sucesso, id_transacao = banco.preparar_saida(contas_p_retirar)
+        print("Preparando")
+        return [sucesso, id_transacao]
+    
+    elif ordem == 'comitar':
+        id_tran = request.args.getlist('id_transacao')
+        sucesso = banco.saida(id_tran)
+        for conta in contas_p_depositar:
+            banco.entrada(conta['id'], conta['valor'])
+        print("Comitando")
+        if sucesso:
+            return True
+        else:
+            return False
+    else:
+        print("TÁ ERRADO ISSO AQUI!")
 
 '''
 [

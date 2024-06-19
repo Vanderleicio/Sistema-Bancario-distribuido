@@ -63,7 +63,7 @@
     async function fetchContas() {
         try {
             const cpf = "{{ usercpf }}"
-            const url = `http://127.0.0.1:5000/api/contas/cpf?CPFs=${encodeURIComponent(cpf)}`
+            const url = `/api/contas/cpf?CPFs=${encodeURIComponent(cpf)}`
 
             const response = await fetch(url);
             const contas = await response.json();

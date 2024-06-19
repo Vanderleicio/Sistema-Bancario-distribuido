@@ -1,4 +1,5 @@
 from models.conta import Conta
+from models.transacao import Transacao
 
 # Nome: String, Cpf: String, Tipo: int
 # Tipos: PF - P (1), PF - C (2), PJ (3)
@@ -7,8 +8,10 @@ class Banco:
 
     def __init__(self, nome):
         self.ULTIMO_ID = 1
+        self.ULTIMA_TRANSACAO = 1
         self.nome = nome
         self.contas = []
+        self.transacoes = []
     
     def add_conta(self, nome, cpf, tipo, senha):
         for conta in self.contas:
@@ -47,17 +50,49 @@ class Banco:
     def login(self, cpf, senha):
         return self.get_conta_cpf(cpf).senha == senha
     
-    def saida(self, id_conta, valor):
-        # Protocolo para fazer a retirada de dinheiro de uma conta
+    def preparar_saida(self, contas_valor):
+        # Protocolo para fazer a retirada de dinheiro de contas
+        contas_envolvidas = []
+        reservas = []
+
+        for conta in contas_valor:
+            conta_envolvida = {'id': conta['id'], 'operacao': 'saida', 'valor': conta['valor']}
+            contas_envolvidas.append(conta_envolvida)
+
+        transacao = Transacao(self.ULTIMA_TRANSACAO, contas_envolvidas)
+        self.ULTIMA_TRANSACAO += 1
+        self.transacoes.append(transacao)
+
+        # Preparacao para transferencia:
         try:
-            contaAlvo = self.get_conta_id(id_conta)
-            contaAlvo.sub_saldo(valor)
-            return True
+            for conta in contas_valor:
+                conta_envolvida = self.get_conta_id(conta['id'])
+                conta_envolvida.sub_saldo(conta['valor'])
+                reserva = {'id': conta['id'], 'valor': conta['valor']}
+                reservas.append(reserva)
+            
+            transacao.preparar(reservas)
+            return [True, self.ULTIMA_TRANSACAO - 1]
+        except RuntimeError:
+            print("TESTANDOOO")
+            for conta in contas_valor:
+                conta_envolvida = self.get_conta_id(conta['id'])
+                conta_envolvida.add_saldo(conta['valor'])
+            return [False, self.ULTIMA_TRANSACAO - 1]
+    
+    def saida(self, id_transacao):
+        try:
+            for transacao in self.transacoes:
+                if transacao.id == id_transacao:
+                    transacao.concluida = True
+                    transacao.sucesso = True
+                    return True
+            return False
         except:
             return False
-    
+
     def entrada(self, id_conta, valor):
-        # Protocolo para fazer a entrada de dinheiro em uma conta
+        # Protocolo para fazer a entrada de dinheiro em contas
         try:
             contaAlvo = self.get_conta_id(id_conta)
             contaAlvo.add_saldo(valor)

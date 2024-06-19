@@ -17,39 +17,32 @@ class Conta:
         return {"id": self.id, "nome": self.nome, "tipo": self.tipo, "cpf": self.cpf, "saldo": self.saldo}
     
     def add_saldo(self, valor):
-        adquirido = self.lock.acquire(blocking=False)
-        if not adquirido:
-            print("TESTE 1")
-            raise RuntimeError("Movimentação sendo feita. Aguarde...")
-
         try:
             # Seção crítica
-            print("TESTE 2")
+            self.travar_saldo()
             self.saldo += valor
-            print("TESTE 3")
+            self.liberar_saldo()
             print(f"Somando {valor} no saldo")
         except Exception as e:
             print(str(e))
-        finally:
-            print("TESTE 4")
-            self.lock.release()
-    
-    def sub_saldo(self, valor):
-        adquirido = self.lock.acquire(blocking=False)
-        if not adquirido:
-            raise RuntimeError("Movimentação sendo feita. Aguarde...")
 
+    def sub_saldo(self, valor):
         try:
+            self.travar_saldo()
             # Seção crítica
             if self.saldo < valor:
                 raise RuntimeError("Saldo insuficiente ")
             else:
                 self.saldo -= valor
+            self.liberar_saldo()
             print(f"Subtraindo {valor} no saldo")
-        finally:
-            self.lock.release()
+        except RuntimeError:
+            raise RuntimeError("Saldo insuficiente ")
+        except Exception as e:
+            print(str(e))
     
     def desfazer_add(self, valor):
+        # RECONSIDERAR !!!
         self.lock.acquire()
         
         try:
@@ -59,6 +52,7 @@ class Conta:
             self.lock.release()
     
     def desfazer_sub(self, valor):
+        # RECONSIDERAR !!!
         self.lock.acquire()
         
         try:
@@ -66,3 +60,11 @@ class Conta:
             print(f"Desfazendo a subtração de {valor}")
         finally:
             self.lock.release()
+
+    def travar_saldo(self):
+        adquirido = self.lock.acquire(blocking=False)
+        if not adquirido:
+            raise RuntimeError("Movimentação sendo feita. Aguarde...")
+    
+    def liberar_saldo(self):
+        self.lock.release()

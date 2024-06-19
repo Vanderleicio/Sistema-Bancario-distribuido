@@ -70,7 +70,7 @@
         // Function to fetch account data from API
         async function fetchAccountData() {
             try {
-                const response = await fetch('http://127.0.0.1:5000/api/contas/todas');
+                const response = await fetch('/api/contas/todas');
                 data = await response.json();
                 console.log(data)
                 renderAccounts();
@@ -81,7 +81,7 @@
 
         async function fetchDestinationAccounts(cpf) {
             try {
-                const response = await fetch(`http://127.0.0.1:5000/api/contas/geral?cpf=${cpf}`);
+                const response = await fetch(`/api/contas/geral?cpf=${cpf}`);
                 destinationAccounts = await response.json();
                 renderDestinationAccounts();
             } catch (error) {
@@ -182,7 +182,7 @@
             data.forEach(bank => {
                 bank.contas.forEach(account => {
                     const option = document.createElement('option');
-                    option.value = account.cpf;
+                    option.value = {'id': account.id, 'banco': account.banco}
                     option.textContent = `${account.nome} (${account.tipo}) - R$ ${account.saldo.toFixed(2)}`;
                     accountSelect.appendChild(option);
                 });
@@ -201,7 +201,7 @@
             destinationAccounts.forEach(bank => {
                 bank.contas.forEach(account => {
                     const option = document.createElement('option');
-                    option.value = account.cpf;
+                    option.value = {'id': account.id, 'banco': account.banco};
                     option.textContent = `${bank.banco} - ${account.nome}`;
                     destinationSelect.appendChild(option);
                 });
@@ -224,7 +224,7 @@
                     };
                     console.log(123)
                     console.log(options['body'])
-                    fetch('http://127.0.0.1:5000/api/depositar', options)
+                    fetch('/api/depositar', options)
                     .then(response => response.json())
                     .then(data => console.log(data))
                     .catch(error => console.error('Erro:', error));
@@ -243,7 +243,7 @@
                     };
                     console.log(123)
                     console.log(options['body'])
-                    fetch('http://127.0.0.1:5000/api/sacar', options)
+                    fetch('/api/sacar', options)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success){
@@ -259,20 +259,37 @@
                 }
             } else if (operation === 'transfer') {
                 const originAccountSelect = document.getElementById('origin-account-select');
+                const destinationAccountSelect = document.getElementById('destination-account-select');
                 const selectedOptions = Array.from(originAccountSelect.selectedOptions);
+                const destinAccount = destinationAccountSelect.value;
                 const cpfInput = document.getElementById('cpf-input');
                 if (cpfInput.value) {
                     let transferAmounts = [];
                     selectedOptions.forEach(option => {
                         const amountInput = document.querySelector(`input[data-cpf="${option.value}"]`);
                         if (amountInput && amountInput.value) {
+                            console.log("OPCAO")
+                            console.log(option)
                             transferAmounts.push({
-                                cpf: option.value,
-                                amount: amountInput.value
+                                id: option.value['id'],
+                                banco: option.value['banco'],
+                                valor: amountInput.value
                             });
                         }
                     });
                     if (transferAmounts.length > 0) {
+                        const dados = {
+                            contas_origem: transferAmounts,
+                            conta_destino: destinAccount
+                        }
+                        fetch('api/transferencia', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(dados)
+                        });
+
                         alert(`Transferência confirmada! CPF de destino: ${cpfInput.value}, Valores: ${JSON.stringify(transferAmounts)}`);
                     } else {
                         alert('Por favor, insira os valores para cada conta de origem selecionada.');
@@ -297,7 +314,7 @@
                     };
                     console.log(123)
                     console.log(options['body'])
-                    fetch('http://127.0.0.1:5000/api/depositar', options)
+                    fetch('/api/depositar', options)
                     .then(response => response.json())
                     .then(data => console.log(data))
                     .catch(error => console.error('Erro:', error));
