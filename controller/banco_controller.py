@@ -4,7 +4,7 @@ import requests
 
 banco_blueprint = Blueprint('banco', __name__, template_folder= '../interfaces')
 banco = Banco("Banco do LARSID")
-#consorcio = [{'nome': 'LARSIDesco', 'rota': 'http://127.0.0.1:5002'}] # Digitar aqui os outros bancos: {'nome': nome_do_banco, 'rota': rota_do_banco} Ex: {'nome': 'LARSIDesco', 'rota': 'http://127.0.0.2:5025'}
+#consorcio = [{'nome': "Banco do LARSID", 'rota': 'http://127.0.0.1:5000'}, {'nome': 'LARSIDesco', 'rota': 'http://127.0.0.1:5002'}] # Digitar aqui os outros bancos: {'nome': nome_do_banco, 'rota': rota_do_banco} Ex: {'nome': 'LARSIDesco', 'rota': 'http://127.0.0.2:5025'}
 consorcio = []
 conta_atual = None
 status_participantes = []
@@ -152,19 +152,52 @@ def saque():
 def transferencia():
     dados = request.get_json()
     contas_origem = dados['contas_origem']  # [{'banco': string, 'id': int, 'valor': float}]
-    contas_destino = dados['conta_destino'] # {'banco': string, 'id': int}
+    conta_destino = eval(dados['conta_destino']) # {'banco': string, 'id': int}
+    bancosAlvos = {}
+    total = 0
+    print("TESTANDOOO")
+    print(type(contas_origem))
+    print(type(conta_destino))
+    for conta in contas_origem:
+        if not bancosAlvos.get(conta['banco']):
+            bancosAlvos[conta['banco']] = []
+        total += float(conta['valor'])
+        bancosAlvos[conta['banco']].append({'id': conta['id'], 'retirar': True, 'valor': float(conta['valor'])})
+    
+    if not bancosAlvos.get(conta_destino['banco']):
+        bancosAlvos[conta_destino['banco']] = []
+
+    bancosAlvos[conta_destino['banco']].append({'id': conta_destino['id'], 'retirar': False, 'valor': total})
+
+    for bancoAlvo, contasAlvo in bancosAlvos.items():
+        # FAZER A LÓGICA PARA ADICIONAR OS OUTROS BANCOS
+        headers = {'Content-Type': 'application/json'}
+        envio = {'mensagem': 'preparar', 'contas': contasAlvo, 'id_tran': None}
+        resp = requests.post('http://127.0.0.1:5000/api/participante', json=envio, headers=headers)
+        resposta = resp.json()
+        print(resposta)
+        if (resposta['sucesso']):
+            envio = {'mensagem': 'comitar', 'contas': contasAlvo, 'id_tran': resposta['transacao']}
+            requests.post('http://127.0.0.1:5000/api/participante', json=envio, headers=headers)
+        else:
+            print("DEU PROBLEMA!")
+
+        
+
+
     print("TÁ VINDO TUDO CERTO?:")
     print(contas_origem)
-    print(contas_destino)
-    return True
+    print(conta_destino)
+    return jsonify({'sucesso': True})
     # IMPLEMENTAR A LÓGICA DE COORDENADOR
 
 
 
-@banco_blueprint.route('/api/participante', methods=['GET'])
+@banco_blueprint.route('/api/participante', methods=['POST'])
 def participante():
-    ordem = request.args.getlist('mensagem') # 'preparar' ou 'comitar'
-    contas_alvo = request.args.getlist('contas') # [{'id': int, 'retirar': bool, 'valor': float}]
+    dados = request.get_json()
+    ordem = dados['mensagem'] # 'preparar' ou 'comitar'
+    contas_alvo = dados['contas'] # [{'id': int, 'retirar': bool, 'valor': float}]
     
     contas_p_retirar = []
     contas_p_depositar = []
@@ -178,12 +211,16 @@ def participante():
     if ordem == 'preparar':
         sucesso, id_transacao = banco.preparar_saida(contas_p_retirar)
         print("Preparando")
-        return [sucesso, id_transacao]
+        return jsonify({'sucesso': sucesso, 'transacao': id_transacao})
     
     elif ordem == 'comitar':
-        id_tran = request.args.getlist('id_transacao')
+        id_tran = dados['id_tran']
         sucesso = banco.saida(id_tran)
         for conta in contas_p_depositar:
+            print("SOMANDOO:")
+            print(conta['id'])
+            print("SOMANDOOO 2:")
+            print(conta['valor'])
             banco.entrada(conta['id'], conta['valor'])
         print("Comitando")
         if sucesso:

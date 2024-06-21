@@ -96,6 +96,8 @@ class Banco:
         try:
             contaAlvo = self.get_conta_id(id_conta)
             contaAlvo.add_saldo(valor)
+            print(f"conta: {contaAlvo.nome}  Saldo: {contaAlvo.saldo}")
+            print("SOMOOOU")
             return True
         except:
             return False

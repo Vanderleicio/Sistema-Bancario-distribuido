@@ -72,7 +72,6 @@
             try {
                 const response = await fetch('/api/contas/todas');
                 data = await response.json();
-                console.log(data)
                 renderAccounts();
             } catch (error) {
                 console.error('Erro ao buscar dados das contas:', error);
@@ -182,7 +181,8 @@
             data.forEach(bank => {
                 bank.contas.forEach(account => {
                     const option = document.createElement('option');
-                    option.value = {'id': account.id, 'banco': account.banco}
+                    let item = {id: account.id, banco: bank.banco, cpf: account.cpf};
+                    option.value = JSON.stringify(item);
                     option.textContent = `${account.nome} (${account.tipo}) - R$ ${account.saldo.toFixed(2)}`;
                     accountSelect.appendChild(option);
                 });
@@ -201,7 +201,8 @@
             destinationAccounts.forEach(bank => {
                 bank.contas.forEach(account => {
                     const option = document.createElement('option');
-                    option.value = {'id': account.id, 'banco': account.banco};
+                    let item = {id: account.id, banco: bank.banco, cpf: account.cpf};
+                    option.value = JSON.stringify(item);
                     option.textContent = `${bank.banco} - ${account.nome}`;
                     destinationSelect.appendChild(option);
                 });
@@ -266,13 +267,14 @@
                 if (cpfInput.value) {
                     let transferAmounts = [];
                     selectedOptions.forEach(option => {
-                        const amountInput = document.querySelector(`input[data-cpf="${option.value}"]`);
+                        const amountInput = document.querySelector(`input[data-cpf='${option.value}']`);
                         if (amountInput && amountInput.value) {
                             console.log("OPCAO")
-                            console.log(option)
+                            optionJs = JSON.parse(option.value);
+                            console.log(JSON.parse(option.value)['id']);
                             transferAmounts.push({
-                                id: option.value['id'],
-                                banco: option.value['banco'],
+                                id: optionJs['id'],
+                                banco: optionJs['banco'],
                                 valor: amountInput.value
                             });
                         }
