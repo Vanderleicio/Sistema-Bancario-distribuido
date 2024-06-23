@@ -5,7 +5,7 @@ import requests
 banco_blueprint = Blueprint('banco', __name__, template_folder= '../interfaces')
 banco = Banco("Banco do LARSID")
 #consorcio = [{'nome': "Banco do LARSID", 'rota': 'http://127.0.0.1:5000'}, {'nome': 'LARSIDesco', 'rota': 'http://127.0.0.1:5002'}] # Digitar aqui os outros bancos: {'nome': nome_do_banco, 'rota': rota_do_banco} Ex: {'nome': 'LARSIDesco', 'rota': 'http://127.0.0.2:5025'}
-consorcio = []
+consorcio = {"Banco do LARSID": 'http://127.0.0.1:5000'}
 conta_atual = None
 status_participantes = []
 
@@ -92,10 +92,11 @@ def get_tdas_contas():
     #print("CPF DA CONTA " + cpf[0])
     parametros = {'CPFs': cpf[0]}
     for bancos in consorcio:
-        contas = requests.get(bancos['rota'] + '/api/contas/cpf', params=parametros).json()
-        if len(contas) > 0:
-            banco_conta = {'banco': bancos['nome'], 'contas': contas}
-            tdas_contas.append(banco_conta)
+        if bancos != banco.nome:
+            contas = requests.get(consorcio[bancos] + '/api/contas/cpf', params=parametros).json()
+            if len(contas) > 0:
+                banco_conta = {'banco': bancos, 'contas': contas}
+                tdas_contas.append(banco_conta)
     print(tdas_contas)
     return jsonify(tdas_contas)
 
@@ -109,10 +110,11 @@ def get_tdas_contas_geral():
     #print("CPF DA CONTA " + cpf[0])
     parametros = {'CPFs': cpf[0]}
     for bancos in consorcio:
-        contas = requests.get(bancos['rota'] + '/api/contas/cpf', params=parametros).json()
-        if len(contas) > 0:
-            banco_conta = {'banco': bancos['nome'], 'contas': contas}
-            tdas_contas.append(banco_conta)
+        if bancos != banco.nome:
+            contas = requests.get(consorcio[bancos] + '/api/contas/cpf', params=parametros).json()
+            if len(contas) > 0:
+                banco_conta = {'banco': bancos, 'contas': contas}
+                tdas_contas.append(banco_conta)
     print(tdas_contas)
     return jsonify(tdas_contas)
 
@@ -169,18 +171,29 @@ def transferencia():
 
     bancosAlvos[conta_destino['banco']].append({'id': conta_destino['id'], 'retirar': False, 'valor': total})
 
+    bancosComunicados = {}
     for bancoAlvo, contasAlvo in bancosAlvos.items():
         # FAZER A LÓGICA PARA ADICIONAR OS OUTROS BANCOS
         headers = {'Content-Type': 'application/json'}
         envio = {'mensagem': 'preparar', 'contas': contasAlvo, 'id_tran': None}
-        resp = requests.post('http://127.0.0.1:5000/api/participante', json=envio, headers=headers)
+        url = consorcio[bancoAlvo] + '/api/participante'
+        resp = requests.post(url, json=envio, headers=headers)
         resposta = resp.json()
         print(resposta)
         if (resposta['sucesso']):
-            envio = {'mensagem': 'comitar', 'contas': contasAlvo, 'id_tran': resposta['transacao']}
-            requests.post('http://127.0.0.1:5000/api/participante', json=envio, headers=headers)
+            bancosComunicados[bancoAlvo] = resposta['transacao']
+
         else:
-            print("DEU PROBLEMA!")
+            for bancos in bancosComunicados:
+                url = consorcio[bancos] + '/api/participante'
+                envio = {'mensagem': 'cancelar', 'contas': contasAlvo, 'id_tran': bancosComunicados[bancos]}
+                requests.post(url, json=envio, headers=headers)
+            break
+    else:
+        for bancos in bancosComunicados:
+            url = consorcio[bancos] + '/api/participante'
+            envio = {'mensagem': 'comitar', 'contas': contasAlvo, 'id_tran': bancosComunicados[bancos]}
+            resp = requests.post(url, json=envio, headers=headers)
 
         
 
@@ -227,6 +240,10 @@ def participante():
             return True
         else:
             return False
+    
+    elif ordem == "cancelar":
+        id_tran = dados['id_tran']
+        sucesso = banco.cancelar(id_tran)
     else:
         print("TÁ ERRADO ISSO AQUI!")
 

@@ -101,3 +101,14 @@ class Banco:
             return True
         except:
             return False
+    
+    def cancelar(self, id_transacao):
+        # Cancelar uma transação que não deu certo
+        for transacao in self.transacoes:
+            if transacao.id == id_transacao:
+                for conta in transacao.contas_envolvidas:
+                    conta_envolvida = self.get_conta_id(conta['id'])
+                    if conta.operacao == "saida":
+                        conta_envolvida.desfazer_sub(conta['valor'])
+                    else:
+                        conta_envolvida.desfazer_add(conta['valor'])
