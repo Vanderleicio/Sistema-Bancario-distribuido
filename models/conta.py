@@ -31,6 +31,7 @@ class Conta:
             self.travar_saldo()
             # Seção crítica
             if self.saldo < valor:
+                self.liberar_saldo()
                 raise RuntimeError("Saldo insuficiente ")
             else:
                 self.saldo -= valor

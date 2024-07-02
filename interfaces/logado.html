@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interface de Contas Bancárias</title>
+    <title>Painel Central</title>
     <style>
         body {
             display: flex;
@@ -39,7 +39,7 @@
 </head>
 <body>
     <div class="column">
-        <div class="title">Saldos em outros Bancos</div>
+        <div class="title">Saldos em outras Contas</div>
         <ul id="account-list" class="account-list"></ul>
     </div>
     <div class="column">
@@ -95,8 +95,8 @@
             accountList.innerHTML = '';
 
             data.forEach(bank => {
+
                 const bankItem = document.createElement('li');
-                bankItem.textContent = bank.banco;
                 const accountSubList = document.createElement('ul');
                 bank.contas.forEach((account, index) => {
                     if (index === 0 && bank === data[0]) {
@@ -108,6 +108,7 @@
                             <p><strong>Saldo:</strong> R$ ${account.saldo.toFixed(2)}</p>
                         `;
                     } else {
+                        bankItem.textContent = bank.banco;
                         const accountItem = document.createElement('li');
                         accountItem.textContent = `${account.nome} (${account.tipo}) - R$ ${account.saldo.toFixed(2)}`;
                         accountSubList.appendChild(accountItem);
@@ -130,6 +131,7 @@
             if (operation === 'deposit' || operation === 'withdraw') {
                 const accountSelect = createAccountSelect();
                 const amountInput = document.createElement('input');
+                accountSelect.id = 'select-accounts'
                 amountInput.type = 'number';
                 amountInput.placeholder = 'Valor';
                 amountInput.id = 'amount-input';
@@ -183,7 +185,7 @@
                     const option = document.createElement('option');
                     let item = {id: account.id, banco: bank.banco, cpf: account.cpf};
                     option.value = JSON.stringify(item);
-                    option.textContent = `${account.nome} (${account.tipo}) - R$ ${account.saldo.toFixed(2)}`;
+                    option.textContent = `${bank.banco} - ${account.nome} - R$ ${account.saldo.toFixed(2)}`;
                     accountSelect.appendChild(option);
                 });
             });
@@ -215,16 +217,16 @@
             const operation = document.getElementById('operation').value;
             const amountInput = document.getElementById('amount-input');
             if (operation === 'deposit') {
+                const accountSelect = document.getElementById('select-accounts')
+                const account = JSON.parse(accountSelect.value)
                 if (amountInput && amountInput.value) {
                     const options = {
                         method: 'POST',
                         headers: {
                         'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({'cpf': cpf, 'valor': amountInput.value}) // Converter objeto JavaScript para JSON string
+                        body: JSON.stringify({'banco': account.banco, 'cpf': account.cpf, 'valor': amountInput.value}) // Converter objeto JavaScript para JSON string
                     };
-                    console.log(123)
-                    console.log(options['body'])
                     fetch('/api/depositar', options)
                     .then(response => response.json())
                     .then(data => console.log(data))
@@ -234,16 +236,17 @@
                     alert('Por favor, insira um valor.');
                 }
             } else if (operation === 'withdraw') {
+                const accountSelect = document.getElementById('select-accounts')
+                const account = JSON.parse(accountSelect.value)
+                console.log(account)
                 if (amountInput && amountInput.value) {
                     const options = {
                         method: 'POST',
                         headers: {
                         'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({'cpf': cpf, 'valor': amountInput.value}) // Converter objeto JavaScript para JSON string
+                        body: JSON.stringify({'banco': account.banco, 'cpf': account.cpf, 'valor': amountInput.value}) // Converter objeto JavaScript para JSON string
                     };
-                    console.log(123)
-                    console.log(options['body'])
                     fetch('/api/sacar', options)
                     .then(response => response.json())
                     .then(data => {
@@ -284,15 +287,22 @@
                             contas_origem: transferAmounts,
                             conta_destino: destinAccount
                         }
-                        fetch('api/transferencia', {
+                        await fetch('api/transferencia', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'
                             },
                             body: JSON.stringify(dados)
+                        }).then(response => response.json())
+                        .then(resposta => {
+                            console.log(resposta);
+                            if (resposta.sucesso){
+                                alert(`Transferência confirmada! CPF de destino: ${cpfInput.value}, Valores: ${JSON.stringify(transferAmounts)}`);
+                            } else{
+                                alert(`Erro ao transferir. Por favor, tente novamente.`);
+                            }
                         });
 
-                        alert(`Transferência confirmada! CPF de destino: ${cpfInput.value}, Valores: ${JSON.stringify(transferAmounts)}`);
                     } else {
                         alert('Por favor, insira os valores para cada conta de origem selecionada.');
                     }
@@ -300,31 +310,7 @@
                     alert('Por favor, insira o CPF da conta de destino.');
                 }
             }
-        }
-
-        async function searchAccounts() {
-            const operation = document.getElementById('operation').value;
-            const amountInput = document.getElementById('amount-input');
-            if (operation === 'deposit') {
-                if (amountInput && amountInput.value) {
-                    const options = {
-                        method: 'POST',
-                        headers: {
-                        'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({'cpf': cpf, 'valor': amountInput.value}) // Converter objeto JavaScript para JSON string
-                    };
-                    console.log(123)
-                    console.log(options['body'])
-                    fetch('/api/depositar', options)
-                    .then(response => response.json())
-                    .then(data => console.log(data))
-                    .catch(error => console.error('Erro:', error));
-                    location.reload()
-                } else {
-                    alert('Por favor, insira um valor.');
-                }
-            }
+            location.reload()
         }
 
         // Fetch account data on page load

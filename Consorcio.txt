@@ -1,0 +1,3 @@
+Banco do LARSID:http://192.168.0.126:5000
+LARSIDesco:http://192.168.0.126:5001
+LARSIDBank:http://192.168.0.126:5002

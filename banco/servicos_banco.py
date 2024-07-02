@@ -64,6 +64,8 @@ class Banco:
         self.transacoes.append(transacao)
 
         # Preparacao para transferencia:
+        print("CONTAS ENVOLVIDAS:")
+        print(contas_envolvidas)
         try:
             for conta in contas_valor:
                 conta_envolvida = self.get_conta_id(conta['id'])
@@ -75,7 +77,7 @@ class Banco:
             return [True, self.ULTIMA_TRANSACAO - 1]
         except RuntimeError:
             print("TESTANDOOO")
-            for conta in contas_valor:
+            for conta in reservas:
                 conta_envolvida = self.get_conta_id(conta['id'])
                 conta_envolvida.add_saldo(conta['valor'])
             return [False, self.ULTIMA_TRANSACAO - 1]
@@ -108,7 +110,7 @@ class Banco:
             if transacao.id == id_transacao:
                 for conta in transacao.contas_envolvidas:
                     conta_envolvida = self.get_conta_id(conta['id'])
-                    if conta.operacao == "saida":
+                    if conta['operacao'] == "saida":
                         conta_envolvida.desfazer_sub(conta['valor'])
                     else:
                         conta_envolvida.desfazer_add(conta['valor'])

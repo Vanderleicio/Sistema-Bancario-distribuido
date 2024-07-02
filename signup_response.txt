@@ -1,4 +1,0 @@
-{
-  "message": "Conta registrada com sucesso para usuario_teste!",
-  "success": true
-}
