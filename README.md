@@ -42,7 +42,10 @@ Já este relatório é dividido em 3 partes além desta Introdução, sendo elas
 
 ## Discussão sobre produto
 
-A principal parte da solução, e justamente o foco do problema, é a comunicação entre os servidores dos bancos e os eventuais problemas de concorrência e conectividade que podem acontecer a partir das interações entre as mais diversas solicitações dos usuário. Para garantir a persistência dos dados e da conexão o protocolo de comunicação usado foi o HTTP, além de ter sido solicitado a necessidade de que todas os servidores fossem APIs REST. Atrelado a isso
+A principal parte da solução, e justamente o foco do problema, é a comunicação entre os servidores dos bancos e os eventuais problemas de concorrência e conectividade que podem acontecer a partir das interações entre as mais diversas solicitações dos usuário. Para garantir a persistência dos dados e da conexão o protocolo de comunicação usado foi o HTTP, além de ter sido solicitado a necessidade de que todas os servidores fossem APIs REST. Atrelado a isso foram desenvolvidos protocolos próprios para garantir a correta comunicação e tratamento das mensagens entre os servidores, eles podem ser visto na Figura 2.
 
+![Protocolos](https://github.com/Vanderleicio/Sistema-Bancario-distribuido/blob/main/imagensREADME/Protocolos.png)
+- **Figura 2:** *Protocolos usados na comunicação entre bancos. [Autor]*
 
+Quase todas as ações listadas são executadas ao serem solicitadas pela interface a qual o usuário tem acesso, com exceção da ação de "participante" que é voltada pra a execução do processo de transferência. Dessa forma, ao precisar de qualquer uma das solicitação 
 
